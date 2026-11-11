@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RecallCover: cover that pays when the regulator recalls the product</title>
+<meta name="description" content="Product-recall cover on GenLayer. An underwriter escrows the payouts; if the regulator's recall page announces a recall of the product, validators read it, quote it, and every policy holder can be paid. No claim form.">
+<meta name="theme-color" content="#F4EFD9">
+<link rel="stylesheet" href="app.css"><link rel="icon" href="logo.svg" type="image/svg+xml">
+<style>
+.hero h1,.big,.dhead h2,.brand{letter-spacing:-.01em;font-weight:400}
+.notice{margin-top:14px;padding:12px 16px;border:2px solid var(--ink);font-size:15px;background:var(--sheet);box-shadow:4px 4px 0 var(--brass)}
+.notice b{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+.quoted{margin:14px 0 0;padding:12px 16px;border-left:6px solid var(--blood);background:var(--sheet);font-style:italic}
+.quoted small{display:block;font:11px var(--mono);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
+.more{margin-top:12px}
+.hero{background:repeating-linear-gradient(-45deg,transparent 0 22px,rgba(227,166,0,.10) 22px 44px)}
+</style>
+</head><body>
+<header class="nav" id="nav"><div class="w">
+  <a class="brand" href="#top"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="logo.svg#m"/></svg><span>Recall<em>Cover</em></span></a>
+  <nav><a href="#how">How it works</a><a href="#who">Buyers &amp; underwriters</a><a href="#app">Pools</a><a href="#faq">FAQ</a><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a></nav>
+  <button id="connect" type="button">Connect wallet</button>
+</div></header>
+
+<main id="top">
+<section class="hero"><div class="w">
+  <div>
+    <span class="live">Live on GenLayer Testnet Bradbury</span>
+    <h1>Recalled? <em>You're already covered.</em></h1>
+    <p class="lede">Buy cover for a product you sell, stock or own. The underwriter's payouts wait in escrow. If the product-safety regulator lists a recall of that product on its recall page, GenLayer validators read it, quote it, and every policy can be paid. No claim form, no adjuster.</p>
+    <div class="cta"><a class="btn" href="#app">See pools</a><a class="btn ghost" href="#post">Open a pool</a></div>
+  </div>
+  <article class="proof" aria-label="Example: a product recalled">
+    <header><span>Pool #1 · Brightway K200 kettle</span><span>0.00002 → 0.0001 GEN</span></header>
+    <div class="att"><b>Opened</b><code>none</code><p>Regulator's page read at opening: no recall of the kettle.</p></div>
+    <div class="att bad"><b>Page read again</b><code>recalled</code><p>“The Brightway K200 electric kettle is recalled because the base can overheat and melt.”</p></div>
+    <div class="att ok"><b>Claims</b><code>2 / 2</code><p>Every holder paid from escrow. Unsold collateral back to the underwriter.</p></div>
+    <footer><span class="stampmini">Paid out</span><a href="#app">Open on-chain →</a></footer>
+  </article>
+</div></section>
+
+<div class="w"><div class="stats" id="stats">
+  <div class="stat"><b>–</b><span>Pools</span></div><div class="stat"><b>–</b><span>Covering</span></div>
+  <div class="stat"><b>–</b><span>Recalled</span></div><div class="stat"><b>–</b><span>Collateral (GEN)</span></div>
+</div></div>
+
+<section class="sec" id="how"><div class="w">
+  <p class="label">How it works</p>
+  <h2 class="big">The regulator's page decides.</h2>
+  <ol class="how wide">
+    <li><span>I</span><div><b>Open</b><p>An underwriter names the product, the regulator's recall page, the premium, the payout and the number of policies, and escrows payout × policies. Validators read the page: no recall of the product yet.</p></div></li>
+    <li><span>II</span><div><b>Buy</b><p>Buyers pay the premium. Buying reads the page too: once a recall is listed, no cover is sold and the premium goes straight back.</p></div></li>
+    <li><span>III</span><div><b>Watch</b><p>Anyone can ask validators to read the page again. They agree on none or recalled, and on a sentence quoted from the page that each of them finds in their own copy.</p></div></li>
+    <li><span>IV</span><div><b>Settle</b><p>Recalled: anyone sends each holder its payout. No recall by the end: one last reading, then the underwriter gets the collateral back and keeps the premiums.</p></div></li>
+  </ol>
+</div></section>
+
+<section class="sec" id="who"><div class="w">
+  <p class="label">Built for both sides</p>
+  <div class="two">
+    <div class="sheet"><h3 class="h">For buyers</h3><ul>
+      <li>The payout is already in escrow when you buy: the underwriter cannot fail to pay.</li>
+      <li>A recall on the regulator's page is enough: you don't file a claim or prove a loss.</li>
+      <li>Shops stuck with recalled stock, owners of a recalled appliance: one fixed sum, at once.</li>
+      <li>Buying after a recall is listed is refused and refunded in the same transaction.</li>
+    </ul></div>
+    <div class="sheet"><h3 class="h">For underwriters</h3><ul>
+      <li>Price recall risk per product, sell cover to anyone, keep every premium if nothing happens.</li>
+      <li>Your exposure is capped at the collateral you chose.</li>
+      <li>Collateral of unsold policies comes back whatever happens.</li>
+      <li>No claims desk, no disputes: the regulator's page settles it.</li>
+    </ul></div>
+  </div>
+  <div class="disc">
+    <div class="notice"><b>Quoted, not guessed</b>A recall counts only with a sentence from the page that every validator finds in its own copy. A quote that is not on the page reverts and changes nothing.</div>
+    <div class="notice"><b>This product, not a neighbour</b>Validators answer “none” for recalls of other brands or models, investigations and warnings without a recall. A listed batch of the product counts.</div>
+    <div class="notice"><b>One last look</b>Releasing a pool after its end reads the page again. A recall announced just before the end still pays every holder.</div>
+  </div>
+</div></section>
+
+<section class="sec" id="app"><div class="w">
+  <p class="label">Pools</p>
+  <h2 class="big">Every pool, read live from the contract.</h2>
+  <p id="status" class="status" hidden></p>
+  <div class="list" id="pools"><p class="empty">Reading the contract…</p></div>
+  <section id="detail" hidden></section>
+  <div id="post" class="postbox">
+    <details>
+      <summary>Open a pool</summary>
+      <form id="create">
+        <label>Product (brand and model)<input name="product" minlength="3" maxlength="120" required placeholder="Brightway K200 electric kettle"></label>
+        <label>Regulator's recall page<input name="url" type="url" pattern="https?://.{3,300}" required placeholder="https://regulator.example/recalls"></label>
+        <p class="hint">The product-safety regulator's own list of recalls. Validators read it now; it must not list a recall of this product yet, and its text must be under 20,000 characters.</p>
+        <div class="row">
+          <label>Premium (GEN)<input name="premium" inputmode="decimal" value="0.0002" required></label>
+          <label>Payout (GEN)<input name="payout" inputmode="decimal" value="0.001" required></label>
+          <label>Policies<input name="capacity" type="number" min="1" max="1000" value="10" required></label>
+          <label>Cover (hours)<input name="hours" type="number" min="1" max="8760" value="720" required></label>
+        </div>
+        <p class="hint" id="collateral"></p>
+        <div class="row"><button type="submit">Read the page and open</button></div>
+      </form>
+    </details>
+  </div>
+</div></section>
+
+<section class="sec" id="faq"><div class="w">
+  <p class="label">FAQ</p>
+  <div class="faq">
+    <details><summary>Who decides that a product is recalled?</summary><p>GenLayer validators. Each one fetches the regulator's page itself and answers one question: does it announce a recall of this product? A result counts only when they agree, and a recall also needs a sentence from the page that every validator finds.</p></details>
+    <details><summary>What if the page is down?</summary><p>The reading reverts and nothing changes; try again later. A page that is down is never taken as “no recall”. If it cannot be read for 30 days after the end, the pool can be released without a reading.</p></details>
+    <details><summary>What does the underwriter get, and when?</summary><p>No recall by the end: all the collateral back plus every premium, after one last reading. Recall: the premiums and the collateral of unsold policies, at once; holders' payouts stay for them.</p></details>
+    <details><summary>Can a rumour or an investigation trigger payouts?</summary><p>No. Only a page that announces a recall, withdrawal, stop-sale or do-not-use notice of this product. Validators answer “none” for anything less, and the quote must be on the page.</p></details>
+    <details><summary>Who sends the payouts?</summary><p>Anyone: each policy's payout goes to the address that bought it, whoever presses the button.</p></details>
+  </div>
+</div></section>
+
+<section class="sec"><div class="w"><div class="closing">
+  <div><h2 class="big">Cover people can check.</h2><p>Escrow the payouts, name the regulator's page, and let consensus watch it.</p></div>
+  <a class="btn" href="#post">Open a pool</a>
+</div></div></section>
+</main>
+
+<script type="module">
+import { contract, wireWallet, send, status, gen, toWei, esc, short, $, EXPLORER, payingTx, finalizeTx } from "./gl.js";
+const ADDR = "0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387";
+const rc = contract(ADDR);
+const B = BigInt, PER = 20;
+let me = null, items = [], view = { id: null, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0 };
+const when = (ts) => ts ? new Date(ts * 1000).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC" : "–";
+const addr = (a) => `<a class="mono" href="${EXPLORER}/address/${esc(a)}">${esc(short(a))}</a>${me && a.toLowerCase() === me.toLowerCase() ? " (you)" : ""}`;
+const cls = { ON: "", CLOSED: "ok", RECALLED: "bad", HELD: "", CLAIMED: "ok" };
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const collateral = (p) => B(p.payout) * B(p.capacity - (p.status === "RECALLED" ? p.claimed : 0));
+
+async function load(openId) {
+  try {
+    const all = [];
+    for (let s = 0; s !== null; ) { const r = await rc.read("get_pools", [s, 50]); all.push(...r.items); s = r.next; }
+    items = all.reverse();
+    const n = (st) => items.filter((p) => p.status === st).length;
+    const held = items.reduce((t, p) => t + (p.released ? (p.status === "RECALLED" ? B(p.payout) * B(p.sold - p.claimed) : 0n) : collateral(p)), 0n);
+    $("#stats").innerHTML = [[items.length, "Pools"], [n("ON"), "Covering"], [n("RECALLED"), "Recalled"], [gen(held), "Collateral (GEN)"]]
+      .map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+    $("#pools").innerHTML = items.length ? items.map((p) => `<a class="item" href="#pool-${p.id}" data-id="${p.id}">
+      <div><b>${esc(p.product)}</b><small>#${p.id} · ${p.status.toLowerCase()} · until ${when(p.ends_at)} · ${p.sold}/${p.capacity} sold</small></div></a>`).join("")
+      : `<p class="empty">No pools yet.</p>`;
+    const h = location.hash.match(/^#pool-(\d+)$/), id = openId ?? (h ? Number(h[1]) : null);
+    if (items.length) await open(Number.isInteger(id) && items.some((p) => p.id === id) ? id : items[0].id);
+  } catch (e) {
+    $("#pools").innerHTML = `<p class="empty">Could not read the contract: ${esc(e.message)}</p>`;
+  }
+}
+async function morePolicies() { const r = await rc.read("get_policies", [view.id, "", view.next, PER]); view.policies.push(...r.items); view.next = r.next; }
+async function moreReads() { const r = await rc.read("get_readings", [view.id, view.rnext, PER]); view.reads.push(...r.items); view.rnext = r.next; }
+async function morePayouts() { const r = await rc.read("get_payouts", [view.pnext, 20, true]); view.payouts.push(...r.items); view.pnext = r.next; }
+async function open(id) {
+  view = { id, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0 };
+  await Promise.all([morePolicies(), moreReads(), morePayouts()]);
+  await show();
+}
+
+function actions(p, policies, recov, now) {
+  if (!me) return `<p class="connect-hint">Connect a wallet to buy cover, check the page, claim or release.</p>`;
+  const out = [], mine = (x) => !!x && x.toLowerCase() === me.toLowerCase(), row = (hint, btn) => `<p class="hint">${hint}</p><div>${btn}</div>`;
+  const left = p.capacity - p.sold;
+  if (p.status === "ON" && now < p.ends_at && !mine(p.underwriter) && left > 0)
+    out.push(`<form data-form="buy" class="row" style="align-items:end"><label>Policies (${left} left, ${gen(p.premium)} GEN each, pays ${gen(p.payout)} GEN)<input name="count" type="number" min="1" max="${Math.min(10, left)}" value="1" required></label><div><button>Buy cover</button></div></form>`);
+  if (p.status === "ON" && now < p.ends_at) out.push(`<form data-form="check" class="row" style="align-items:end">${row("Ask validators to read the regulator's page now. If it lists a recall of this product, every policy can be paid.", `<button class="ghost">Read the page</button>`)}</form>`);
+  if (!p.released && (p.status !== "ON" || now >= p.ends_at))
+    out.push(`<form data-form="release" class="row" style="align-items:end">${row(p.status === "ON" ? "The cover has ended. Validators read the page one last time; if it lists no recall, the underwriter gets the collateral and premiums back." : `The underwriter gets ${gen(p.free)} GEN: premiums and the collateral no policy can claim.`, `<button>Release to the underwriter</button>`)}</form>`);
+  if (p.status === "RECALLED") for (const t of policies.filter((t) => t.status === "HELD"))
+    out.push(`<form data-form="claim" data-policy="${t.id}" class="row" style="align-items:end">${row(`Policy #${t.id}: ${plural(t.count, "policy")} held by ${addr(t.holder)}.`, `<button>Pay ${gen(B(p.payout) * B(t.count))} GEN</button>`)}</form>`);
+  if (B(recov) > 0n) out.push(`<form data-form="recover" class="row" style="align-items:end"><label>Recover ${gen(recov)} GEN from a failed transfer, to<input name="to" pattern="0x[0-9a-fA-F]{40}" value="${esc(me)}" required></label><div><button>Recover</button></div></form>`);
+  return out.length ? `<div style="display:grid;gap:16px;margin-top:20px">${out.join("")}</div>` : "";
+}
+
+function reading(r) {
+  const bad = r.answer !== "none";
+  return `<div class="case"><div class="case-top"><span class="id">${esc(r.answer)}</span><span class="by">${when(r.at)} · asked by ${addr(r.by)}</span></div>
+    <div class="ruling ${bad ? "bad" : "ok"}"><b>${bad ? "Consensus: the page lists a recall of this product." : "Consensus: no recall of this product."}</b>${bad ? `<i>“${esc(r.quote)}”</i>` : ""}</div></div>`;
+}
+
+async function show() {
+  const p = items.find((x) => x.id === view.id);
+  const recov = me ? await rc.read("get_recoverable", [me]) : 0;
+  const el = $("#detail"), now = Math.floor(Date.now() / 1000);
+  el.hidden = false;
+  el.innerHTML = `<div class="dhead"><div><small>Pool #${p.id} · opened ${when(p.at)} · covers until ${when(p.ends_at)}</small><h2>${esc(p.product)} <span class="tag ${cls[p.status]}">${p.status.toLowerCase()}</span></h2>
+    <p>underwriter ${addr(p.underwriter)} · recall page <a href="${esc(p.url)}" rel="noopener nofollow">${esc(p.url)} ↗</a></p></div></div>
+    ${p.quote ? `<p class="quoted"><small>The regulator's page</small>${esc(p.quote)}</p>` : ""}
+    <div class="mini">
+      <div><span>Premium → payout</span><b>${gen(p.premium)} → ${gen(p.payout)} GEN</b></div>
+      <div><span>Sold / claimed</span><b>${p.sold} / ${p.claimed} of ${p.capacity}</b></div>
+      <div><span>Collateral</span><b>${gen(B(p.payout) * B(p.capacity))} GEN</b></div>
+      <div><span>Released</span><b>${p.released ? "yes" : "no"}</b></div>
+    </div>
+    <h3>Readings of the page (${view.reads.length}${view.rnext !== null ? "+" : ""})</h3>
+    ${view.reads.map(reading).join("")}
+    ${view.rnext !== null ? `<button class="ghost more" data-act="more-reads">More readings</button>` : ""}
+    <h3>Policies</h3>
+    ${view.policies.length ? `<div class="tbl"><table><tbody>${view.policies.map((t) => `<tr><td class="num mut">#${t.id}</td><td>${addr(t.holder)} · ${plural(t.count, "policy")} · ${when(t.at)}</td><td class="r"><span class="tag ${cls[t.status]}">${t.status.toLowerCase()}</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="hint">No policies yet.</p>`}
+    ${view.next !== null ? `<button class="ghost more" data-act="more-policies">More policies</button>` : ""}
+    <h3>Unsettled transfers</h3>
+    <p class="hint">A payment is marked delivered or failed from its own transfer result, once the paying transaction is finalized. Anyone can settle.</p>
+    ${view.payouts.length ? `<div class="tbl"><table><tbody>${view.payouts.map((x) => `<tr><td class="num mut">#${x.id}</td><td>${esc(x.kind)}, ${gen(x.amount)} GEN to ${addr(x.to)}</td><td class="r">${me ? `<button class="ghost" data-act="settle_payout" data-arg="${x.id}">Settle</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="hint">None${view.pnext !== null ? " in the range read so far" : ""}.</p>`}
+    ${view.pnext !== null ? `<button class="ghost more" data-act="more-payouts">More transfers</button>` : ""}
+    ${actions(p, view.policies, recov, now)}`;
+  document.querySelectorAll("#pools .item").forEach((x) => x.toggleAttribute("aria-current", Number(x.dataset.id) === p.id));
+}
+
+async function settle(pid) {
+  const p = await rc.read("get_payout", [pid]);
+  let tx = payingTx(ADDR, p.sender, p.at);
+  if (!tx) tx = prompt(`Payout #${pid} was created by a transaction from ${p.sender} at ${when(p.at)}. Paste that GenLayer transaction hash (0x…):`)?.trim();
+  if (!tx) return;
+  status(`Settle payout #${pid}: looking up the finalization of ${short(tx)}…`);
+  const fin = await finalizeTx(tx).catch(() => null);
+  if (!fin) return status(`Settle payout #${pid}: the paying transaction is not finalized yet (or not found). Try again later.`, true);
+  if (await send(rc, `Settle payout #${pid}`, "settle_payout", [pid, tx, fin], 0n, async () => (await rc.read("get_payout", [pid])).status !== "SENT")) load(view.id);
+}
+
+addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 8), { passive: true });
+document.querySelectorAll('a[href="#post"]').forEach((a) => a.addEventListener("click", () => { $("#post details").open = true; }));
+$("#pools").addEventListener("click", (ev) => { const t = ev.target.closest(".item[data-id]"); if (t) { ev.preventDefault(); history.replaceState(null, "", `#pool-${t.dataset.id}`); open(Number(t.dataset.id)); $("#detail").scrollIntoView({ behavior: "smooth" }); } });
+$("#detail").addEventListener("click", async (ev) => {
+  const fn = ev.target.dataset?.act;
+  if (fn === "more-policies") { await morePolicies(); return show(); }
+  if (fn === "more-reads") { await moreReads(); return show(); }
+  if (fn === "more-payouts") { await morePayouts(); return show(); }
+  if (fn === "settle_payout") return settle(Number(ev.target.dataset.arg));
+});
+$("#detail").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const f = ev.target, fn = f.dataset.form, id = view.id, p = items.find((x) => x.id === id);
+  let args = [id], value = 0n, check, payee; // payee: who the call may pay (see gl.js)
+  const after = (ok) => async () => ok(await rc.read("get_pool", [id]));
+  const reads = async () => (await rc.read("get_readings", [id, 0, 1])).total;
+  // A buy that finds a recall sends the premium back to the buyer.
+  if (fn === "buy") { const n = Number(f.count.value); args = [id, n]; value = B(p.premium) * B(n); payee = me; check = after((x) => x.sold === p.sold + n || x.status !== "ON"); }
+  else if (fn === "check") { const n = await reads(); check = async () => (await reads()) > n; }
+  else if (fn === "release") { payee = p.underwriter; check = after((x) => x.released || x.status !== p.status); }
+  else if (fn === "claim") { const t = view.policies.find((x) => x.id === Number(f.dataset.policy)); args = [t.id]; payee = t.holder; check = async () => (await rc.read("get_policy", [t.id])).status === "CLAIMED"; }
+  else { args = [f.to.value]; payee = f.to.value; check = async () => B(await rc.read("get_recoverable", [me])) === 0n; }
+  if (await send(rc, fn, fn, args, value, check, payee)) load(id);
+});
+const f0 = $("#create");
+const total = () => { try { return toWei(f0.payout.value) * B(f0.capacity.value || 0); } catch { return null; } };
+const showCollateral = () => { const t = total(); $("#collateral").textContent = t === null ? "" : `You escrow ${gen(t)} GEN (payout × policies). It comes back with the premiums if no recall is listed by the end.`; };
+f0.addEventListener("input", showCollateral); showCollateral();
+f0.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    const n = items.length;
+    const args = [f0.product.value.trim(), f0.url.value.trim(), toWei(f0.premium.value), toWei(f0.payout.value), Number(f0.capacity.value), Number(f0.hours.value)];
+    if (await send(rc, "Open pool", "open_pool", args, total(), async () => (await rc.read("get_pools", [0, 1])).total === n + 1)) { f0.reset(); showCollateral(); load(n); }
+  } catch (err) { status(err.message, true); }
+});
+wireWallet((a) => { me = a; if (view.id !== null) show(); });
+load();
+</script>
+<footer><div class="w">
+  <a class="brand" href="#top"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="logo.svg#m"/></svg><span>Recall<em>Cover</em></span></a>
+  <nav><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a><a href="https://github.com/cris-the-dev/genlayer-recallcover">GitHub</a><a href="https://explorer-bradbury.genlayer.com/address/0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387">Contract</a><a href="https://genlayer.com">Built on GenLayer</a></nav>
+</div></footer>
+</body></html>
