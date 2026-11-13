@@ -87,8 +87,9 @@
       <summary>Open a pool</summary>
       <form id="create">
         <label>Product (brand and model)<input name="product" minlength="3" maxlength="120" required placeholder="Brightway K200 electric kettle"></label>
-        <label>Regulator's recall page<input name="url" type="url" pattern="https?://.{3,300}" required placeholder="https://regulator.example/recalls"></label>
-        <p class="hint">The product-safety regulator's own list of recalls. Validators read it now; it must not list a recall of this product yet, and its text must be under 20,000 characters.</p>
+        <label>Model identifier<input name="model" minlength="2" maxlength="40" required placeholder="K200"></label>
+        <label>Regulator's recall page<input name="url" type="url" pattern="https://.{3,300}" required placeholder="https://regulator.example/recalls"></label>
+        <p class="hint">On an approved regulator's site: <span id="sources">…</span>. Validators read it now; it must not list a recall of this product yet, and its text must be under 20,000 characters. A recall counts only if the quoted sentence names the model identifier.</p>
         <div class="row">
           <label>Premium (GEN)<input name="premium" inputmode="decimal" value="0.0002" required></label>
           <label>Payout (GEN)<input name="payout" inputmode="decimal" value="0.001" required></label>
@@ -121,7 +122,7 @@
 
 <script type="module">
 import { contract, wireWallet, send, status, gen, toWei, esc, short, $, EXPLORER, payingTx, finalizeTx } from "./gl.js";
-const ADDR = "0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387";
+const ADDR = "0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882";
 const rc = contract(ADDR);
 const B = BigInt, PER = 20;
 let me = null, items = [], view = { id: null, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0 };
@@ -185,7 +186,7 @@ async function show() {
   const el = $("#detail"), now = Math.floor(Date.now() / 1000);
   el.hidden = false;
   el.innerHTML = `<div class="dhead"><div><small>Pool #${p.id} · opened ${when(p.at)} · covers until ${when(p.ends_at)}</small><h2>${esc(p.product)} <span class="tag ${cls[p.status]}">${p.status.toLowerCase()}</span></h2>
-    <p>underwriter ${addr(p.underwriter)} · recall page <a href="${esc(p.url)}" rel="noopener nofollow">${esc(p.url)} ↗</a></p></div></div>
+    <p>underwriter ${addr(p.underwriter)} · model ${esc(p.model)} · ${esc(p.source_name || p.source)} recall page <a href="${esc(p.url)}" rel="noopener nofollow">${esc(p.url)} ↗</a></p></div></div>
     ${p.quote ? `<p class="quoted"><small>The regulator's page</small>${esc(p.quote)}</p>` : ""}
     <div class="mini">
       <div><span>Premium → payout</span><b>${gen(p.premium)} → ${gen(p.payout)} GEN</b></div>
@@ -251,15 +252,16 @@ f0.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   try {
     const n = items.length;
-    const args = [f0.product.value.trim(), f0.url.value.trim(), toWei(f0.premium.value), toWei(f0.payout.value), Number(f0.capacity.value), Number(f0.hours.value)];
+    const args = [f0.product.value.trim(), f0.model.value.trim(), f0.url.value.trim(), toWei(f0.premium.value), toWei(f0.payout.value), Number(f0.capacity.value), Number(f0.hours.value)];
     if (await send(rc, "Open pool", "open_pool", args, total(), async () => (await rc.read("get_pools", [0, 1])).total === n + 1)) { f0.reset(); showCollateral(); load(n); }
   } catch (err) { status(err.message, true); }
 });
 wireWallet((a) => { me = a; if (view.id !== null) show(); });
+rc.read("get_sources", []).then((s) => { document.getElementById("sources").textContent = Object.entries(s).map(([h, n]) => `${n} (${h})`).join(", ") || "none yet"; }).catch(() => {});
 load();
 </script>
 <footer><div class="w">
   <a class="brand" href="#top"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="logo.svg#m"/></svg><span>Recall<em>Cover</em></span></a>
-  <nav><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a><a href="https://github.com/cris-the-dev/genlayer-recallcover">GitHub</a><a href="https://explorer-bradbury.genlayer.com/address/0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387">Contract</a><a href="https://genlayer.com">Built on GenLayer</a></nav>
+  <nav><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a><a href="https://github.com/cris-the-dev/genlayer-recallcover">GitHub</a><a href="https://explorer-bradbury.genlayer.com/address/0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882">Contract</a><a href="https://genlayer.com">Built on GenLayer</a></nav>
 </div></footer>
 </body></html>

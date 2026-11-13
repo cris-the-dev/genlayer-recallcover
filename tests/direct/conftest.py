@@ -182,6 +182,8 @@ CLEAR = "<html><body><h1>Product recalls</h1><ul><li>Acme T9 toaster: fire risk.
 RECALLED_PAGE = "<html><body><h1>Product recalls</h1><ul><li>Brightway K200 electric kettle: the base can overheat. Consumers should stop using it and return it for a refund.</li><li>Acme T9 toaster: fire risk.</li></ul></body></html>"
 QUOTE = "Brightway K200 electric kettle: the base can overheat."
 PRODUCT = "Brightway K200 electric kettle"
+MODEL = "K200"
+SOURCES = {"regulator.example": "Product Safety Regulator (test)"}
 PREMIUM = GEN // 100
 PAYOUT = GEN // 10
 LLM = r"announces a recall of one product"
@@ -195,11 +197,11 @@ def page(vm, body=CLEAR, status=200, answer="none", quote=""):
 def ts(iso):
     return int(datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp())
 
-def open_pool(vm, c, who, premium=PREMIUM, payout=PAYOUT, capacity=10, hours=720, product=PRODUCT, url=URL, value=None, **kw):
+def open_pool(vm, c, who, premium=PREMIUM, payout=PAYOUT, capacity=10, hours=720, product=PRODUCT, model=MODEL, url=URL, value=None, **kw):
     page(vm, **kw)
     vm.sender, vm.value = who, payout * capacity if value is None else value
     try:
-        return c.open_pool(product, url, premium, payout, capacity, hours)
+        return c.open_pool(product, model, url, premium, payout, capacity, hours)
     finally:
         vm.value = 0
 
@@ -215,7 +217,8 @@ def buy(vm, c, who, pool=0, count=1, value=None):
 def ev(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
     """Pool 0 by Alice (10 x PAYOUT, 30 days from 2030-01-01 10:00); Bob holds policy 0 (2), Charlie policy 1 (1)."""
     direct_vm.warp("2030-01-01T10:00:00Z")
-    c = direct_deploy("contracts/recall_cover.py")
+    direct_vm.sender = direct_alice  # Alice deploys: she owns the source list
+    c = direct_deploy("contracts/recall_cover.py", SOURCES)
     open_pool(direct_vm, c, direct_alice)
     buy(direct_vm, c, direct_bob, count=2)
     buy(direct_vm, c, direct_charlie)

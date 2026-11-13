@@ -27,7 +27,7 @@ END = "2030-01-31T10:00:00Z"
 def test_open_and_buy(ev, direct_alice):
     p = ev.get_pool(0)
     assert (p["underwriter"].lower(), p["status"], p["sold"], p["free"]) == (to_hex(direct_alice).lower(), "ON", 3, 3 * PREMIUM + 10 * PAYOUT)
-    assert p["ends_at"] == ts(END) and p["lapse_at"] == ts(END) + 30 * DAY
+    assert p["ends_at"] == ts(END) and (p["model"], p["source"], p["source_name"]) == ("K200", "regulator.example", "Product Safety Regulator (test)")
     assert [t["count"] for t in ev.get_policies(0, "", 0, 10)["items"]] == [2, 1]
     assert ev.get_readings(0, 0, 10)["items"][0]["answer"] == "none"
     assert ev.get_accounting()["expected_balance"] == 10 * PAYOUT + 3 * PREMIUM
@@ -36,7 +36,9 @@ def test_open_and_buy(ev, direct_alice):
     "kw, msg",
     [
         ({"product": "x"}, "3-120"),
-        ({"url": "ftp://x"}, "http(s)"),
+        ({"url": "ftp://x"}, "https url"),
+        ({"model": "K"}, "model must be"),
+        ({"model": "K300"}, "part of the product name"),
         ({"premium": PAYOUT}, "0 < premium < payout"),
         ({"capacity": 1001}, "capacity 1-1000"),
         ({"hours": 0}, "1-8760 hours"),
@@ -138,14 +140,76 @@ def test_release_reads_the_page_one_last_time(ev, direct_vm, direct_alice, direc
     tick(direct_vm)
     assert ev.get_pool(0)["status"] == "RECALLED" and ev.claim(0) == 2 * PAYOUT
 
-def test_unreadable_pool_closes_after_30_days(ev, direct_vm, direct_alice, direct_bob, ledger):
+def test_no_release_without_a_final_reading(ev, direct_vm, direct_alice, direct_bob, ledger):
+    # The page is gone at the end: nothing moves, however long after; the pool stays ON.
     page(direct_vm, status=404)
     direct_vm.sender = direct_bob
-    direct_vm.warp("2030-03-02T10:00:00Z")
-    with direct_vm.expect_revert("unavailable (HTTP 404)"):
+    for when in (END, "2030-03-02T10:00:01Z", "2031-06-01T00:00:00Z"):
+        direct_vm.warp(when)
+        with direct_vm.expect_revert("unavailable (HTTP 404)"):
+            ev.release(0)
+    assert (ev.get_pool(0)["status"], ev.get_pool(0)["released"], ledger.paid_to(direct_alice)) == ("ON", False, 0)
+    # A page that says nothing conclusive about the model does not close it either.
+    page(direct_vm, body=RECALLED_PAGE, answer="recalled", quote="Acme T9 toaster: fire risk.")
+    with direct_vm.expect_revert("does not name model K200"):
         ev.release(0)
-    direct_vm.warp("2030-03-02T10:00:01Z")
+    # Once the page reads again, the final reading decides.
+    page(direct_vm)
     assert ev.release(0) == 10 * PAYOUT + 3 * PREMIUM and ev.get_pool(0)["status"] == "CLOSED"
+
+
+# ── The source: an approved regulator's host ───────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://underwriter.example/recalls",  # the underwriter's own site
+        "https://regulator.example.evil.example/recalls",  # approved name as a subdomain of another host
+        "https://fake-regulator.example/recalls",  # approved name as a suffix
+        "https://regulator.example@evil.example/recalls",  # user-info
+        "https://regulator.example:8443/recalls",  # port
+        "http://regulator.example/recalls",  # not https
+    ],
+)
+def test_an_unapproved_source_is_refused_before_reading(ev, direct_vm, direct_alice, url):
+    with direct_vm.expect_revert("approved regulator source" if url.startswith("https://") and "@" not in url and ":8443" not in url else "https url"):
+        open_pool(direct_vm, ev, direct_alice, url=url)
+    assert ev.get_pools(0, 10)["total"] == 1
+
+
+def test_a_subdomain_of_an_approved_source_is_accepted(ev, direct_vm, direct_alice):
+    assert open_pool(direct_vm, ev, direct_alice, url="https://www.regulator.example/recalls?page=2") == 1
+    assert ev.get_pool(1)["source"] == "regulator.example"
+
+
+def test_only_the_owner_approves_sources(ev, direct_vm, direct_alice, direct_bob):
+    direct_vm.sender = direct_bob
+    with direct_vm.expect_revert("not authorised"):
+        ev.set_source("underwriter.example", "Not a regulator")
+    direct_vm.sender = direct_alice  # the deployer
+    ev.set_source("other-regulator.example", "Other Regulator")
+    assert ev.get_sources() == {"regulator.example": "Product Safety Regulator (test)", "other-regulator.example": "Other Regulator"}
+    ev.set_source("regulator.example", "")  # withdrawn for new pools; pool 0 keeps its page
+    with direct_vm.expect_revert("not an approved regulator source"):
+        open_pool(direct_vm, ev, direct_alice)
+    assert ev.get_pool(0)["url"] == "https://regulator.example/recalls"
+
+
+def test_a_recall_quote_must_name_the_model(ev, direct_vm, direct_charlie):
+    # K2000 is another model: the quote is on the page but does not name K200.
+    body = "<html><body><ul><li>Brightway K2000 electric kettle: the base can overheat.</li></ul></body></html>"
+    page(direct_vm, body=body, answer="recalled", quote="Brightway K2000 electric kettle: the base can overheat.")
+    direct_vm.sender = direct_charlie
+    with direct_vm.expect_revert("does not name model K200"):
+        ev.check(0)
+    assert ev.get_pool(0)["status"] == "ON"
+    page(direct_vm, **RECALL)
+    ev.check(0)
+    page(direct_vm, body=RECALLED_PAGE + body, answer="recalled", quote=QUOTE)
+    assert direct_vm.run_validator(leader_result={"status": "recalled", "quote": "Brightway K2000 electric kettle: the base can overheat."}) is False
+    assert direct_vm.run_validator() is True
+
 
 def test_a_payout_needs_the_balance(ev, direct_vm, direct_bob):
     page(direct_vm, **RECALL)
