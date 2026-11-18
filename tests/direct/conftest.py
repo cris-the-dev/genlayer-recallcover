@@ -186,30 +186,30 @@ MODEL = "K200"
 SOURCES = {"regulator.example": "Product Safety Regulator (test)"}
 PREMIUM = GEN // 100
 PAYOUT = GEN // 10
-LLM = r"announces a recall of one product"
+LLM = r"announces a recall of some products"
 
-def page(vm, body=CLEAR, status=200, answer="none", quote=""):
-    """The regulator's page and the LLM's answer, for leader and validators."""
+def page(vm, body=CLEAR, status=200, recalled=()):
+    """The regulator's page and the LLM's answer (`recalled`: [(model, quote)]), for leader and validators."""
     vm.clear_mocks()
     vm.mock_web(r"regulator\.example", {"status": status, "body": body})
-    vm.mock_llm(LLM, json.dumps({"status": answer, "quote": quote}))
+    vm.mock_llm(LLM, json.dumps({"recalled": [{"model": m, "quote": q} for m, q in recalled]}))
 
 def ts(iso):
     return int(datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp())
 
-def open_pool(vm, c, who, premium=PREMIUM, payout=PAYOUT, capacity=10, hours=720, product=PRODUCT, model=MODEL, url=URL, value=None, **kw):
+def open_pool(vm, c, who, premium=PREMIUM, payout=PAYOUT, capacity=10, hours=720, product=PRODUCT, models=None, url=URL, value=None, **kw):
     page(vm, **kw)
     vm.sender, vm.value = who, payout * capacity if value is None else value
     try:
-        return c.open_pool(product, model, url, premium, payout, capacity, hours)
+        return c.open_pool(product, [MODEL] if models is None else models, url, premium, payout, capacity, hours)
     finally:
         vm.value = 0
 
-def buy(vm, c, who, pool=0, count=1, value=None):
+def buy(vm, c, who, pool=0, count=1, value=None, model=0):
     vm.sender, vm.value = who, PREMIUM * count if value is None else value
     try:
         tick(vm)
-        return c.buy(pool, count)
+        return c.buy(pool, model, count)
     finally:
         vm.value = 0
 

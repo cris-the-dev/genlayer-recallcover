@@ -6,28 +6,30 @@ When a product is recalled, the shop left with unsellable stock and the owner of
 a now-dangerous appliance wait on the maker, the importer or an insurer's claim
 desk. **RecallCover** sells fixed-sum cover against one event anyone can check:
 the product-safety regulator lists a recall of this product. An underwriter
-opens a pool for one product and its model identifier, names a recall page on
-a regulator's host the contract owner approved, and escrows
-every payout it may owe. Buyers pay a premium. Anyone can ask GenLayer
-validators to read the page: if it lists a recall of the product, quoted word
-for word, every policy can be paid at once, by anyone. If nothing is listed by
-the end of the cover, the underwriter gets the collateral back and keeps the
-premiums, but only after validators read the page one last time and agree
+opens a pool for a product and 1–4 of its model identifiers, names a recall page
+on a regulator's host the contract owner approved, and escrows every payout it
+may owe; other backers may add collateral until the first sale and share pro
+rata. Buyers pay a premium for one model. Anyone can ask GenLayer validators to
+read the page: if it lists a recall of a model, quoted word for word, every
+policy on that model can be paid at once, by anyone, while the other models stay
+covered. If nothing is listed by the end of the cover, the backers get the
+collateral back and share the premiums, but only after validators read the page one last time and agree
 it lists no recall; while that reading cannot be made, nothing moves.
 
 ```
 owner       ── deploy(sources) / set_source(host, name)          approved regulator hosts
-underwriter ── open_pool(product, model, url, premium, payout, capacity, hours) + payout × capacity ─▶ RecallCover
+underwriter ── open_pool(product, [models], url, premium, payout, units, hours) + payout × units ─▶ RecallCover
                url on an approved host (or its subdomain), else refused before any reading;
-               validators read the page now: reachable, ≤ 20,000 characters, no recall of the product yet
-buyer       ── buy(pool, count) + premium × count   (before the end; reads the page first:
-               a listed recall ─▶ RECALLED, nothing sold, premium sent straight back)
-anyone      ── check(pool): validators read the page and agree on none / recalled,
-               plus a sentence each of them finds on its own copy
-               recalled ─▶ every policy claimable, sales closed
+               validators read the page now: reachable, ≤ 20,000 characters, no model recalled yet
+backer      ── back(pool, units) + payout × units   (until the first policy is sold)
+buyer       ── buy(pool, model, count) + premium × count   (before the end; reads the page first:
+               that model listed ─▶ recalled, nothing sold, premium sent straight back)
+anyone      ── check(pool): validators read the page and agree on which models are recalled,
+               each with a sentence naming it that each of them finds on its own copy
+               recalled model ─▶ its policies claimable, its sales closed; other models still covered
 anyone      ── claim(policy) ─▶ payout × count to the holder
-anyone      ── release(pool): RECALLED ─▶ premiums + unsold collateral to the underwriter
-               ON after the end ─▶ final reading required; none ─▶ CLOSED, everything to the underwriter;
+anyone      ── release(stake): every model recalled, or after the end with one final reading
+               (none ─▶ CLOSED) ─▶ premiums + unclaimed collateral, pro rata to units, last stake the remainder;
                page unavailable or unclear ─▶ reverts, pool stays ON (no lapse, ever)
 anyone      ── settle_payout(payout, tx, finalize_tx) / payee ── recover(to)
 ```
@@ -35,51 +37,56 @@ anyone      ── settle_payout(payout, tx, finalize_tx) / payee ── recover
 ## Live deployment
 
 App: https://recallcover.cristhedev.com (pools, their readings with quotes, policies and every role's actions; source in [`app/`](app/))  
-Testnet Bradbury Phase 2 (chainId 4221, GenVM v0.3): [`0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882`](https://explorer-bradbury.genlayer.com/address/0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882) (v1.1.0). The v1.0.0 deployment without the source registry and with the lapse, `0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387`, is retired.
+Testnet Bradbury Phase 2 (chainId 4221, GenVM v0.3): [`0xd7Fd31C47c5A70AF9227ee7A2D501ac3e897A912`](https://explorer-bradbury.genlayer.com/address/0xd7Fd31C47c5A70AF9227ee7A2D501ac3e897A912) (v2.0.0: several backers, several models per pool; see [MILESTONE.md](MILESTONE.md)). Earlier deployments: v1.1.0 `0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882`, v1.0.0 `0xBD749A903cd6505486CAD428c6B2C2ea0e5D1387`.
 
 ## Bradbury evidence
 
-Run by [`tests/integration/bradbury.mjs`](tests/integration/bradbury.mjs) on Bradbury Phase 2 (all checks passed). Contract `0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882` (deploy [`0xb2832d4b…`](https://explorer-bradbury.genlayer.com/tx/0xb2832d4bd7635a8eb0a096b85b1ce9d15eb7f99e07195d6c068fa5d9515064ed)), code `build/recall_cover.py` (sha256 `94d5ec2b…`), deployed with one approved source: `recallcover.cristhedev.com`. Underwriter and two buyers are separate accounts. The regulator's page is served from [`evidence/`](evidence/); mid-run [`recalls.html`](evidence/recalls.html) was replaced by [`recalls-k200.html`](evidence/recalls-k200.html), which adds the kettle recall, and the run waited for it. After the hair-dryer cover ended, its page [`notices.html`](evidence/notices.html) was taken down (404): release reverted and the pool stayed ON; once the page was back, release read it and closed the pool.
+Run by [`tests/integration/bradbury.mjs`](tests/integration/bradbury.mjs) on Bradbury Phase 2 (all checks passed). Contract `0xd7Fd31C47c5A70AF9227ee7A2D501ac3e897A912` (deploy [`0xa2ee0ee5…`](https://explorer-bradbury.genlayer.com/tx/0xa2ee0ee53c8882e8a6cc5feeeb566927d3c524a01a0b3f3f60e30f3a9a7c1c86)), code `build/recall_cover.py` (sha256 `1fff1c3b…`), deployed with one approved source: `recallcover.cristhedev.com`. Underwriter, a second backer and a buyer are separate accounts. Pool #0 covers a hair dryer (page [`notices.html`](evidence/notices.html)), backed by the underwriter (3 units) and a second backer (1 unit). Pool #1 covers two models, Brightway K200 and K300, on [`kettles.html`](evidence/kettles.html); mid-run it was replaced by [`kettles-k200.html`](evidence/kettles-k200.html), which lists the K200 recall only, and the run waited for it. After the hair-dryer cover ended its page was taken down (404): release reverted and the pool stayed ON; once the page was back, release read it and paid both backers pro rata.
 
 | Step | Transaction | Outcome |
 |---|---|---|
-| approve a source as a buyer | [`0x60b1d73a…`](https://explorer-bradbury.genlayer.com/tx/0x60b1d73a0e700f8395a1555c0dee9d62de329f2960f5789de2e1ae3190aa3269) | rejected: only the owner approves sources |
-| open a pool on the seller's own site | [`0xd266948d…`](https://explorer-bradbury.genlayer.com/tx/0xd266948d57744ca459b662ee31fc2b9b372284e979362aeef3c51b4352b37aa0) | rejected before reading: host is not an approved source |
-| open a pool on the parent domain | [`0xa28f96d5…`](https://explorer-bradbury.genlayer.com/tx/0xa28f96d55173b62d7a3783cafd957baab5e9748054682e9faf6da1887254c526) | rejected before reading: parent domain is not the approved source |
-| open a pool for model K300 | [`0x984dabea…`](https://explorer-bradbury.genlayer.com/tx/0x984dabea5ccf9d0f2a6e546bb38df89305d77e652d65755b8776d8671cddfb6e) | rejected: the model must be part of the product name |
-| open a pool for the recalled toaster | [`0x15c1705d…`](https://explorer-bradbury.genlayer.com/tx/0x15c1705d86ed144ee7aa81a837bed9f07ee37e9dc5ca0704d25637b1e435b96a) | reverts: the page already lists the Acme T9 toaster recall |
-| open the hair-dryer pool (1 hour) | [`0x0e60c167…`](https://explorer-bradbury.genlayer.com/tx/0x0e60c167b3c14f9b01d6dd5d70dfcdf7084ba61e5e4d5f5984fef8b62fc9f433) | ok: pool #0, 3 × 0.0001 GEN escrowed, cover ends in 1 h |
-| buy 1 hair-dryer policy | [`0xf6bc5183…`](https://explorer-bradbury.genlayer.com/tx/0xf6bc5183fbfb40a55550ee1b9a68809f5ceff01283c065b93b5013e054da02fe) | ok: policy #0, 0.00002 GEN premium |
-| open the kettle pool short of collateral | [`0xb50724a3…`](https://explorer-bradbury.genlayer.com/tx/0xb50724a39b769dcc8101c75e45b864d34f24f53d0f9095999ae9db5f8b2fbbd7) | rejected: collateral must be payout × capacity |
-| open the kettle pool | [`0x936c8b85…`](https://explorer-bradbury.genlayer.com/tx/0x936c8b854f01e5197e5b79cab4beeefa5bc35f054ba441b3e9e780e57bc90146) | ok: pool #1 (Brightway K200), 5 × 0.0001 GEN escrowed, page read: no recall |
-| buy as the underwriter | [`0xb73e8cbf…`](https://explorer-bradbury.genlayer.com/tx/0xb73e8cbf9df3838cf5f337c34f3e8dd8f51a9d5c24103c38a7538424ba9e7e73) | rejected: the underwriter cannot buy |
-| buy 2 policies paying for 1 | [`0xf9738bdb…`](https://explorer-bradbury.genlayer.com/tx/0xf9738bdbf96579d702973e8006c405bdecb3a005cb14d553780505c7fb28d2fd) | rejected: send exactly premium × count |
-| buy 2 kettle policies | [`0xcb613fb6…`](https://explorer-bradbury.genlayer.com/tx/0xcb613fb63accc4a1f6609b41a4703bbdb894f9c10c435481ded765dfb0550775) | ok: policy #1 |
-| buy 1 kettle policy | [`0x73b5eae2…`](https://explorer-bradbury.genlayer.com/tx/0x73b5eae21138c5b20846acf70b3a6200480f5233e2cac7c772b15d1ce173cfd5) | ok: policy #2 |
-| claim while on | [`0xb851674f…`](https://explorer-bradbury.genlayer.com/tx/0xb851674fd7a2c16a34b970cdb9af7314bd6c0d0ef09248decf7e07e852ccf976) | rejected: pool is ON, nothing to claim |
-| read the page (nothing yet) | [`0x67484e02…`](https://explorer-bradbury.genlayer.com/tx/0x67484e0294f6992ed8998d51300d5f54d769e6f6861580ac65b29c5f43f26025) | `none`: still ON, 3 policies sold |
-| buy after the recall is listed (reads the page, premium sent back) | [`0x2ea4a693…`](https://explorer-bradbury.genlayer.com/tx/0x2ea4a693d178788b4c296b02813870191712647532b2a671c6618f3d78907756) | **`recalled`**, quoted: “The Brightway K200 electric kettle is recalled because the base can overheat and melt.” Pool RECALLED, nothing sold, 0.00002 GEN premium returned = payout 0 |
-| buy again | [`0xa364eec2…`](https://explorer-bradbury.genlayer.com/tx/0xa364eec2b338d73f1d6f5f2abacd09e6d8a395e94cdbd53e57d39da9d4f36274) | rejected: sales closed |
-| read the page again | [`0x2af197ab…`](https://explorer-bradbury.genlayer.com/tx/0x2af197ab7c2577c2998b6b3e12d5e15f3afbb81e0715f005f5b7838eeb9fc325) | rejected: pool already RECALLED |
-| claim policy for 2 (anyone sends it) | [`0xd4542830…`](https://explorer-bradbury.genlayer.com/tx/0xd45428301fb7890b79b13c7651b496967716d0282b70fa4b79126c5f3eb18a3c) | 0.0002 GEN to the holder = payout 1 (sent by another account) |
-| claim it again | [`0x6ddb9aa6…`](https://explorer-bradbury.genlayer.com/tx/0x6ddb9aa6653d2616dbd63cf2648895a7f25e5885cc1ced03c5f643c7a63d9c99) | rejected: already claimed |
-| claim policy for 1 | [`0x6fea27ea…`](https://explorer-bradbury.genlayer.com/tx/0x6fea27ea5ccb3060772f55e245e3481791bd6fc010f6ac675aaa290030bc698e) | 0.0001 GEN to the holder = payout 2 |
-| release the kettle pool | [`0x7aeeb9cf…`](https://explorer-bradbury.genlayer.com/tx/0x7aeeb9cfc83c7de8daca27e79d3df52122de487ed538fa1c962c95b147159f9e) | 3 premiums + 2 unsold payouts = 0.00026 GEN to the underwriter = payout 3 |
-| release the hair-dryer pool early | [`0x3a404fd1…`](https://explorer-bradbury.genlayer.com/tx/0x3a404fd120aaa0a857af600620c5f7cca4fc264486361bfc2673e30f8459f175) | rejected: the cover has not ended |
-| release while the page is unavailable | [`0xe63908f0…`](https://explorer-bradbury.genlayer.com/tx/0xe63908f0707fd8546b09261fd15959e575f3c61e566bd2887cb885591c32cd10) | **reverts: page 404, no final reading; pool stays ON with its collateral** |
-| release the hair-dryer pool | [`0x965d9dcf…`](https://explorer-bradbury.genlayer.com/tx/0x965d9dcf8a7781d92a5bbdcc2c9d8f25aeb280e985b64dbcf426059aa83a3861) | **after the end, one last reading: `none`, CLOSED**, 0.00032 GEN (premium + collateral) to the underwriter = payout 4 |
+| approve a source as a buyer | [`0x3191c024…`](https://explorer-bradbury.genlayer.com/tx/0x3191c02455f71d48c4524c360b9b4687d44ea06a1f02ced62e976293f53564f3) | rejected: only the owner approves sources |
+| open a pool on the seller's own site | [`0x6e350146…`](https://explorer-bradbury.genlayer.com/tx/0x6e35014660d09ba6a79890e5b7aa2cc042f261898d48dc6550a846790ee89b69) | rejected: a page on an unapproved host is refused |
+| open a pool for 5 models | [`0x9c0be032…`](https://explorer-bradbury.genlayer.com/tx/0x9c0be032b22e7845e854017abcd23a1cb8a2b3d5fec8274aee976c8bed062631) | rejected: at most 4 models |
+| open a pool for K200 twice | [`0x2a318461…`](https://explorer-bradbury.genlayer.com/tx/0x2a31846105582714442d3d935cfd986686d52604d2d150875fead4307ffa7735) | rejected: models must differ |
+| open a pool for the recalled toaster | [`0xe2f10896…`](https://explorer-bradbury.genlayer.com/tx/0xe2f10896320c644e0b2c06477dfe2bf8f2d8dca62f5425398f7aafc38e8b1c5b) | rejected: a product the page already recalls cannot be covered |
+| open the hair-dryer pool (1 hour, 3 units) | [`0xe8b37d94…`](https://explorer-bradbury.genlayer.com/tx/0xe8b37d94f5df5bfa9391c7a6a5ef339369633fdf5e9e1d353ea141c14726dfc1) | ok: pool #0, 3 × 0.0001 GEN escrowed by the underwriter |
+| back with less than payout | [`0xfb223a5d…`](https://explorer-bradbury.genlayer.com/tx/0xfb223a5d0af35e63fbd472a0326c16cde5f88a043bda1aebfcd6669a00aa88ef) | rejected: backing must be payout x units |
+| back the hair-dryer pool with 1 unit | [`0xeaac026f…`](https://explorer-bradbury.genlayer.com/tx/0xeaac026f26807ef375ea49348b6084769cb5854c976ceee9870b24610f45fa34) | ok: the backer adds 1 unit, 0.0001 GEN |
+| buy as a backer | [`0x2c9e25ba…`](https://explorer-bradbury.genlayer.com/tx/0x2c9e25ba28a028cd26df4a2a3c08ba3d2e0885cb986be34b7c58377faff8ba55) | rejected: a backer cannot buy |
+| buy 1 hair-dryer policy | [`0xe0067990…`](https://explorer-bradbury.genlayer.com/tx/0xe0067990a4ac57756c00738adf1cb19f7c07da3f1ae1a670441b573a966be13b) | ok: 0.00002 GEN premium |
+| back after a sale | [`0x892dc28c…`](https://explorer-bradbury.genlayer.com/tx/0x892dc28c605536c46b60e2d291d8faa194d291e1f943b30632467f914cc3bb48) | rejected: backing is fixed once a policy is sold; 4 units from 2 backers |
+| open the kettle pool short of collateral | [`0xf24a6dc5…`](https://explorer-bradbury.genlayer.com/tx/0xf24a6dc5d0191c0904c065ea0e4c596661b8dede3879fbc7a1c0526dae5b6255) | rejected: the collateral must be payout x units |
+| open the kettle pool (K200, K300; 1 hour) | [`0x59013b82…`](https://explorer-bradbury.genlayer.com/tx/0x59013b824ba26b5c3da5d425a333a1f3e7a11eb288f3628c80e380c462368394) | ok: kettle pool is #1 |
+| buy model 2 | [`0xe39155bf…`](https://explorer-bradbury.genlayer.com/tx/0xe39155bf6dc8387a7509051a94857052ab53777397d128a355d70f27fd38b3c9) | rejected: a model that does not exist is refused |
+| buy 2 K200 policies paying for 1 | [`0xa9a90f77…`](https://explorer-bradbury.genlayer.com/tx/0xa9a90f777d643b4efde1ca03528731409cb3f5d335ab17cbbb4ed37a0022ee92) | rejected: the premium must be premium x count |
+| buy 2 K200 policies | [`0x5697cd5e…`](https://explorer-bradbury.genlayer.com/tx/0x5697cd5effd3dafb281cfc468f8c40c22a215fc3816359b137493ed60252bf30) | ok |
+| buy 1 K300 policy | [`0x2770e1a3…`](https://explorer-bradbury.genlayer.com/tx/0x2770e1a30322f9b520859d17ffd26e9f72563ac7af7e894f8a6ec06e6bacaa70) | ok |
+| claim while on | [`0xe270782c…`](https://explorer-bradbury.genlayer.com/tx/0xe270782c08b9f8ff011d348cb0b7d6840980899b4da2c1116ad2a758952c4879) | rejected: nothing is claimable while the page says nothing |
+| buy K200 after the recall is listed (reads the page, premium sent back) | [`0x35a7d2f6…`](https://explorer-bradbury.genlayer.com/tx/0x35a7d2f68a2213d7332402f6d6d1e97666bc307eb569e5f8eef2f850bf3a4f5a) | **K200 `recalled`, K300 still covered**, nothing sold, 0.00002 GEN premium returned = payout 0; quoted: “Brightway K200 electric kettleThe Brightway K200 electric kettle is recalled because the base can overheat and melt.” |
+| buy K200 again | [`0xdee86c2d…`](https://explorer-bradbury.genlayer.com/tx/0xdee86c2dacef04619ee228f846d0ec2744f834da7c0c0baa3c1375b66ff82c0c) | rejected: K200 sales close once recalled |
+| buy 1 more K300 policy | [`0xa2493717…`](https://explorer-bradbury.genlayer.com/tx/0xa24937179b3328e8385f0a9b116ffb3cfc3bc72a59543cd8e66e1df3430a19db) | ok |
+| claim the K200 policy for 2 (anyone sends it) | [`0x5c479888…`](https://explorer-bradbury.genlayer.com/tx/0x5c4798880854698d47ba2a34afbf8403a2c8ad37e0ff57df61ddb10597153be8) | 0.0002 GEN to the holder = payout 1 (sent by another account) |
+| claim it again | [`0x87308258…`](https://explorer-bradbury.genlayer.com/tx/0x87308258dc5d86cde1851964de16a39353d4cc237b8dd826d4e9e558e5612d36) | rejected: a policy is claimed once |
+| claim the K300 policy | [`0xe5389ef2…`](https://explorer-bradbury.genlayer.com/tx/0xe5389ef26e2152a7968b9d0cc58e10be5157dde6ec655d0ee899908cfa1c768c) | rejected: a K300 policy is not claimable |
+| release the kettle pool early | [`0xc10f79a7…`](https://explorer-bradbury.genlayer.com/tx/0xc10f79a76a6c055a3ea21be4629b8be95f400d072f8d27e376c0d0ab0e46d6c5) | rejected: release is refused before the cover ends |
+| release the kettle pool (final reading) | [`0x0607927e…`](https://explorer-bradbury.genlayer.com/tx/0x0607927e1c27660042c1fa6c2eeb3354887a5c27fac2703030ac8881290af284) | after the end, one last reading: CLOSED; 0.00038 GEN (premiums + collateral no K200 policy claims) to the underwriter = payout 2 |
+| release while the page is unavailable | [`0x11be2f74…`](https://explorer-bradbury.genlayer.com/tx/0x11be2f7455efa6ff5bf0c83d7b22c516635c034c7cac02cbc7f963528da1c474) | **reverts: page 404, no final reading; pool stays ON with its collateral** |
+| release the backer's share | [`0x0258043e…`](https://explorer-bradbury.genlayer.com/tx/0x0258043e6314440279a1a3a92e73134ddbc96e6fe27b7edb15192a4235402d92) | final reading `none`, CLOSED; 1 of 4 units: 0.000105 GEN to the backer = payout 3 |
+| release it again | [`0x55871de0…`](https://explorer-bradbury.genlayer.com/tx/0x55871de0962eaf818bcd535c89b9ccebdaeec34001f8f93d7fe2b0a735f031d7) | rejected: a share is released once |
+| release the underwriter's share | [`0x7ad3fd44…`](https://explorer-bradbury.genlayer.com/tx/0x7ad3fd44c2365cf21d8de3f357289f7e0fed0ca3186816d58829b1d5f66927ff) | 3 of 4 units, the remainder: 0.000315 GEN to the underwriter = payout 4 |
 
 Every payout was settled from its own transfer once the paying transaction finalized:
 
-| Payout | Kind | Paid by | Finalized by | `settle_payout` | Result |
-|---|---|---|---|---|---|
-| 0 | returned → buyer (late kettle buy, premium back) | [`0x2ea4a693…`](https://explorer-bradbury.genlayer.com/tx/0x2ea4a693d178788b4c296b02813870191712647532b2a671c6618f3d78907756) | [`0xc8ec2333…`](https://explorer-bradbury.genlayer.com/tx/0xc8ec233334561920f53be39728cf11c0af73c794fad5a2be03737794b1eb5689) | [`0x15c1716e…`](https://explorer-bradbury.genlayer.com/tx/0x15c1716e69888e3aa9a4f37cd44d8157e6dce142111ac89ea61d55ed96766d98) | DELIVERED |
-| 1 | claim → holder (kettle, 2 policies) | [`0xd4542830…`](https://explorer-bradbury.genlayer.com/tx/0xd45428301fb7890b79b13c7651b496967716d0282b70fa4b79126c5f3eb18a3c) | [`0x736ba7aa…`](https://explorer-bradbury.genlayer.com/tx/0x736ba7aa65fb8b23cda6c70ea0d73612eb4648b203bed469b7fffc002394031d) | [`0xaa70d150…`](https://explorer-bradbury.genlayer.com/tx/0xaa70d150fbf7e250dc9fb5c74f413357cb983a42100003a098c6b4ef2d975cd1) | DELIVERED |
-| 2 | claim → holder (kettle, 1 policy) | [`0x6fea27ea…`](https://explorer-bradbury.genlayer.com/tx/0x6fea27ea5ccb3060772f55e245e3481791bd6fc010f6ac675aaa290030bc698e) | [`0x079481a9…`](https://explorer-bradbury.genlayer.com/tx/0x079481a9e147f23838cf7f45a1ed6630b4ac67296f288fdffe3ba2ec16531806) | [`0x2b69e87a…`](https://explorer-bradbury.genlayer.com/tx/0x2b69e87abdf0bc8d953001b3576e112e239b43065495ac2d22872a8cfe24321b) | DELIVERED |
-| 3 | release → underwriter (kettle: 3 premiums + 2 unsold payouts) | [`0x7aeeb9cf…`](https://explorer-bradbury.genlayer.com/tx/0x7aeeb9cfc83c7de8daca27e79d3df52122de487ed538fa1c962c95b147159f9e) | [`0x65a47198…`](https://explorer-bradbury.genlayer.com/tx/0x65a47198ddff237b7a8d6dab5998bee4752020296e27031aa7671d37f70c9f12) | [`0xd2986604…`](https://explorer-bradbury.genlayer.com/tx/0xd2986604f87e3b050795cc1a087aa5beeb0789b088eb560d5416284c67c6bf8f) | DELIVERED |
-| 4 | release → underwriter (hair dryer: premium + collateral) | [`0x965d9dcf…`](https://explorer-bradbury.genlayer.com/tx/0x965d9dcf8a7781d92a5bbdcc2c9d8f25aeb280e985b64dbcf426059aa83a3861) | [`0xd5686c45…`](https://explorer-bradbury.genlayer.com/tx/0xd5686c4576b63afc67648593e2195e07d02238b6571ea0fb92203040cf9991d0) | [`0x3dd54732…`](https://explorer-bradbury.genlayer.com/tx/0x3dd547326b6cb8520653e72defee15d3753d02e211358b4ca2acd1e4a568eab8) | DELIVERED |
+| Payout | Kind | Finalized by | `settle_payout` | Result |
+|---|---|---|---|---|
+| 0 | returned → buyer (K200 bought after the recall) | [`0x4bf4d8a8…`](https://explorer-bradbury.genlayer.com/tx/0x4bf4d8a8583273fdda0f1fa772eff53ec62cef3c4be39448ef6f69ca1aea205a) | [`0xfb815971…`](https://explorer-bradbury.genlayer.com/tx/0xfb81597126d4656bc3ead5cb210d6ddbb60aa6be868c013d3728fb38896aeb4e) | DELIVERED |
+| 1 | claim → holder (K200, 2 policies) | [`0x3e45e75e…`](https://explorer-bradbury.genlayer.com/tx/0x3e45e75eb1fc60efb12b648010d43a4af281a282ec1a6afa3a72149a68732117) | [`0x8b433eb3…`](https://explorer-bradbury.genlayer.com/tx/0x8b433eb342e752dd6a9d686bdb6b658b54676abc8e8541fcf950992f58378603) | DELIVERED |
+| 2 | release → underwriter (kettle pool) | [`0x704063e1…`](https://explorer-bradbury.genlayer.com/tx/0x704063e115c357932b71b65845ca4db7d8626285cdae3d670ca8c384171253cf) | [`0xa83cfcb6…`](https://explorer-bradbury.genlayer.com/tx/0xa83cfcb6ecc6cf5aaa7b1f688f2509d13b340ae0cd727ea7c191b8ddaa553db9) | DELIVERED |
+| 3 | release → backer (hair dryer, 1 unit) | [`0x29411de8…`](https://explorer-bradbury.genlayer.com/tx/0x29411de8c3efee7262adfd8b1b95648eb2e8dbac802abde8c99bd549c6ecca38) | [`0x5bfa4627…`](https://explorer-bradbury.genlayer.com/tx/0x5bfa4627e54b26216ddc2e3f08678e868bee4cf1f37560527f91b410c64b2938) | DELIVERED |
+| 4 | release → underwriter (hair dryer, 3 units) | [`0x70f85e25…`](https://explorer-bradbury.genlayer.com/tx/0x70f85e25333e531febbe7adeef780cb98ccd1c72100d3657d19682b3e3f82ff4) | [`0x4ff91842…`](https://explorer-bradbury.genlayer.com/tx/0x4ff9184254c9c5676acdb278e57231b8560491bcb0e2fe8717be8585efb27dc7) | DELIVERED |
 
-Settling the same payout again is rejected ([`0x8713341d…`](https://explorer-bradbury.genlayer.com/tx/0x8713341d5772dc7f64d2b8a858db932708f9dd5264a0cc4c21c271de26eca2b7), [`0xbbb549ff…`](https://explorer-bradbury.genlayer.com/tx/0xbbb549ffa4210cb3ebcebbc8ed86c3d9752282e2f812fbbd9a3bc95ff723b05f), [`0x684f8061…`](https://explorer-bradbury.genlayer.com/tx/0x684f8061e0ad99e3a8becd69d972dddf54a17a6d73488fe86838fa43c28a43b5), [`0x5be29b33…`](https://explorer-bradbury.genlayer.com/tx/0x5be29b33183429ed20d95d24f19b16925b123628044ef6050fedb396d5eb9fdc), [`0x03063f9d…`](https://explorer-bradbury.genlayer.com/tx/0x03063f9d80ac087ea64ba391940e3a714e7a09c2b85cf8caa1a3d9c877623849)). On Bradbury a reverted payable transaction leaves its value in the contract; the contract never recorded it, so no one can withdraw it. The E2E checks the balance equals what the contract expects to hold plus exactly that value (0.00246 GEN).
+Settling the same payout again is rejected ([`0x78b79674…`](https://explorer-bradbury.genlayer.com/tx/0x78b79674b2611cdc3482a8303dfc10e30ecea53425db462ee4d0c820f2232f23), [`0xea9cbc50…`](https://explorer-bradbury.genlayer.com/tx/0xea9cbc50af25d48137e00a972ee6c79bc003d2fc13649af4ac0c92598d588d1a), [`0x7d6f75f8…`](https://explorer-bradbury.genlayer.com/tx/0x7d6f75f84d8b1167af1c908b198f5266094bea5b0730b2f90fbe17bd5b4b5edb), [`0x75dcf4ab…`](https://explorer-bradbury.genlayer.com/tx/0x75dcf4abd8a8209ece8a48f106f4d49cde01fa83b78e80e9a485debf78bb386c), [`0x3e15b6a6…`](https://explorer-bradbury.genlayer.com/tx/0x3e15b6a60f5c2d2b990695a8057224e337125be80036e39d5a31c56915413b28)). On Bradbury a reverted payable transaction leaves its value in the contract; the contract never recorded it, so no one can withdraw it. The E2E checks the balance equals what the contract expects to hold plus exactly that value (0.00268 GEN).
 
 ## Which page counts
 
@@ -164,10 +171,11 @@ amount becomes recoverable by the payee, who sends it anywhere with `recover`.
 https://recallcover.cristhedev.com ([`app/`](app/)) reads the **finalized**
 state and treats a write as done only when it is `FINALIZED` with
 `FINISHED_WITH_RETURN` **and** reading the contract back shows the change.
-Each pool shows its product, recall page, premium and payout, collateral,
-every reading with its quote, and its policies. Buy and check appear only
-during the cover; release after the end or once recalled; a pay button per held
-policy only once recalled. The open form shows the collateral it will escrow.
+Each pool shows its product, its models with their status and quote, recall
+page, premium and payout, its backers and their units, every reading, and its
+policies. Back appears until the first sale; buy (with a model picker) and check
+only during the cover; release per stake after the end or once every model is
+recalled; a pay button per held policy only once its model is recalled. The open form shows the collateral it will escrow.
 GEN amounts use BigInt only. "Settle" finds the paying transaction and looks up
 its finalization from the `TransactionFinalized` log.
 `node app/check-actions.mjs app/index.html` (CI) asserts the controls per role,
@@ -178,13 +186,14 @@ pool state and time, escaping, and exact money formatting.
 | Method | Who | Notes |
 |---|---|---|
 | `set_source(host, name)` | owner | approve a host (and subdomains); empty name withdraws it |
-| `open_pool(product, model, url, premium, payout, capacity, hours)` payable | underwriter | url on an approved host; `model` 2–40 chars, part of the product name; `0 < premium < payout`; capacity 1–1,000; 1–8,760 h; exactly `payout × capacity`; reads the page |
-| `buy(pool_id, count)` payable | anyone but the underwriter | before the end, 1–10, exactly `premium × count`; reads the page; returns -1 and the premium if recalled |
-| `check(pool_id)` | anyone | during the cover; reads the page; returns the status |
+| `open_pool(product, models, url, premium, payout, units, hours)` payable | underwriter | url on an approved host; 1–4 distinct models, 2–40 letters, digits or `./-`; `0 < premium < payout`; units 1–1,000; 1–8,760 h; exactly `payout × units`; reads the page |
+| `back(pool_id, units)` payable | anyone | before the first sale and the end; exactly `payout × units`; capacity ≤ 1,000 |
+| `buy(pool_id, model, count)` payable | anyone but a backer | before the end, 1–10, exactly `premium × count`; reads the page; returns -1 and the premium if that model is recalled |
+| `check(pool_id)` | anyone | during the cover; reads the page; returns how many models are recalled |
 | `claim(policy_id)` | anyone | pays the holder once `RECALLED` |
-| `release(pool_id)` | anyone | `RECALLED`, or after `ends_at` (reads the page); once |
+| `release(stake_id)` | anyone | every model recalled, or after `ends_at` (one final reading for the pool); pays that stake's pro-rata share; once |
 | `settle_payout(payout_id, tx_hash, finalize_tx)` / `recover(to)` | anyone / payee | |
-| `get_pool`, `get_pools(start, limit)`, `get_policy`, `get_policies(pool_id or -1, holder or "", start, limit)`, `get_readings(pool_id, start, limit)`, `get_payout`, `get_payouts(start, limit, only_unsettled)`, `get_accounting`, `get_recoverable`, `get_sources` | view | |
+| `get_pool`, `get_pools(start, limit)`, `get_stake`, `get_stakes(pool_id, start, limit)`, `get_policy`, `get_policies(pool_id or -1, holder or "", start, limit)`, `get_readings(pool_id, start, limit)`, `get_payout`, `get_payouts(start, limit, only_unsettled)`, `get_accounting`, `get_recoverable`, `get_sources` | view | |
 
 ## Run
 
@@ -192,7 +201,7 @@ pool state and time, escaping, and exact money formatting.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 genvm-lint check contracts/recall_cover.py
-pytest tests/direct -v                         # 44 tests
+pytest tests/direct -v                         # 51 tests
 # end-to-end on Bradbury Phase 2, against the packed code (keys in GL_PK0..2)
 python deploy/shrink.py contracts/recall_cover.py build/recall_cover.py --pack
 npm i genlayer-js@2.0.0-rc.2   # plus the fee-estimate patch in app/README.md
@@ -200,14 +209,14 @@ node tests/integration/bradbury.mjs build/recall_cover.py
 ```
 
 Bradbury rejects deploys above ~20 KB of code; deploy the output of
-`deploy/shrink.py` (AST-checked, 34.5 KB → 9.2 KB packed). CI re-runs all
+`deploy/shrink.py` (AST-checked, 41.3 KB → 10.4 KB packed). CI re-runs all
 direct tests against the packed code. The E2E regulator page is in
-[`evidence/`](evidence/), served at `https://recallcover.cristhedev.com/evidence/recalls.html`;
-it is replaced by `recalls-k200.html` (the kettle's recall added) mid-run, and
+[`evidence/`](evidence/), served at `https://recallcover.cristhedev.com/evidence/`; `kettles.html`
+is replaced by `kettles-k200.html` (the K200 recall added) mid-run, and
 `notices.html` (the hair-dryer pool's page) is taken down and restored to show
 that release waits for a final reading.
 
-## Tests (44 direct, Bradbury E2E)
+## Tests (51 direct, Bradbury E2E)
 
 - **Sources and model** — a seller's page, look-alike or parent domain, user-info, a port or plain http are refused before reading; a subdomain of an approved host is accepted; only the owner approves sources; a recall quote that does not name the model (K2000 vs K200) reverts and is rejected by validators.
 - **Opening and buying** — validation of product, model, url, premium/payout, capacity, hours and collateral; a product already recalled cannot be covered; exact premium, policy cap, no buying by the underwriter or after the end; buying after a recall returns the premium.

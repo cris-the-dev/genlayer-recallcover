@@ -46,10 +46,10 @@
   <p class="label">How it works</p>
   <h2 class="big">The regulator's page decides.</h2>
   <ol class="how wide">
-    <li><span>I</span><div><b>Open</b><p>An underwriter names the product, the regulator's recall page, the premium, the payout and the number of policies, and escrows payout × policies. Validators read the page: no recall of the product yet.</p></div></li>
+    <li><span>I</span><div><b>Open</b><p>An underwriter names the product line, up to four model identifiers, the regulator's recall page, the premium and the payout, and escrows payout × units. Other underwriters can add units until the first sale. Validators read the page: no recall of any model yet.</p></div></li>
     <li><span>II</span><div><b>Buy</b><p>Buyers pay the premium. Buying reads the page too: once a recall is listed, no cover is sold and the premium goes straight back.</p></div></li>
     <li><span>III</span><div><b>Watch</b><p>Anyone can ask validators to read the page again. They agree on none or recalled, and on a sentence quoted from the page that each of them finds in their own copy.</p></div></li>
-    <li><span>IV</span><div><b>Settle</b><p>Recalled: anyone sends each holder its payout. No recall by the end: one last reading, then the underwriter gets the collateral back and keeps the premiums.</p></div></li>
+    <li><span>IV</span><div><b>Settle</b><p>Recalled model: anyone sends each of its holders the payout; the other models stay covered. After the end: one last reading, then each backer gets its pro-rata share of the premiums and of the collateral no claim can take.</p></div></li>
   </ol>
 </div></section>
 
@@ -86,14 +86,14 @@
     <details>
       <summary>Open a pool</summary>
       <form id="create">
-        <label>Product (brand and model)<input name="product" minlength="3" maxlength="120" required placeholder="Brightway K200 electric kettle"></label>
-        <label>Model identifier<input name="model" minlength="2" maxlength="40" required placeholder="K200"></label>
+        <label>Product line (brand)<input name="product" minlength="3" maxlength="120" required placeholder="Brightway electric kettles"></label>
+        <label>Model identifiers, 1-4, comma-separated<input name="models" maxlength="170" required pattern="\s*[A-Za-z0-9][A-Za-z0-9 ./\-]{0,38}[A-Za-z0-9]\s*(,\s*[A-Za-z0-9][A-Za-z0-9 ./\-]{0,38}[A-Za-z0-9]\s*){0,3}" placeholder="K200, K300"></label>
         <label>Regulator's recall page<input name="url" type="url" pattern="https://.{3,300}" required placeholder="https://regulator.example/recalls"></label>
-        <p class="hint">On an approved regulator's site: <span id="sources">…</span>. Validators read it now; it must not list a recall of this product yet, and its text must be under 20,000 characters. A recall counts only if the quoted sentence names the model identifier.</p>
+        <p class="hint">On an approved regulator's site: <span id="sources">…</span>. Validators read it now; it must not list a recall of any of the models yet, and its text must be under 20,000 characters. A recall counts only if the quoted sentence names that model identifier; it pays that model's holders and leaves the other models covered.</p>
         <div class="row">
           <label>Premium (GEN)<input name="premium" inputmode="decimal" value="0.0002" required></label>
           <label>Payout (GEN)<input name="payout" inputmode="decimal" value="0.001" required></label>
-          <label>Policies<input name="capacity" type="number" min="1" max="1000" value="10" required></label>
+          <label>Units (policies you back)<input name="capacity" type="number" min="1" max="1000" value="10" required></label>
           <label>Cover (hours)<input name="hours" type="number" min="1" max="8760" value="720" required></label>
         </div>
         <p class="hint" id="collateral"></p>
@@ -108,7 +108,7 @@
   <div class="faq">
     <details><summary>Who decides that a product is recalled?</summary><p>GenLayer validators. Each one fetches the regulator's page itself and answers one question: does it announce a recall of this product? A result counts only when they agree, and a recall also needs a sentence from the page that every validator finds.</p></details>
     <details><summary>What if the page is down?</summary><p>The reading reverts and nothing changes; try again later. A page that is down is never taken as “no recall”. If it cannot be read for 30 days after the end, the pool can be released without a reading.</p></details>
-    <details><summary>What does the underwriter get, and when?</summary><p>No recall by the end: all the collateral back plus every premium, after one last reading. Recall: the premiums and the collateral of unsold policies, at once; holders' payouts stay for them.</p></details>
+    <details><summary>What do underwriters get, and when?</summary><p>After the end and one last reading, each backer gets its share, pro rata to the units it backed, of every premium plus the collateral no policy on a recalled model can claim. If every model is recalled, release needs no reading. Other underwriters can back a pool until its first policy is sold; after that the backing is fixed.</p></details>
     <details><summary>Can a rumour or an investigation trigger payouts?</summary><p>No. Only a page that announces a recall, withdrawal, stop-sale or do-not-use notice of this product. Validators answer “none” for anything less, and the quote must be on the page.</p></details>
     <details><summary>Who sends the payouts?</summary><p>Anyone: each policy's payout goes to the address that bought it, whoever presses the button.</p></details>
   </div>
@@ -122,15 +122,18 @@
 
 <script type="module">
 import { contract, wireWallet, send, status, gen, toWei, esc, short, $, EXPLORER, payingTx, finalizeTx } from "./gl.js";
-const ADDR = "0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882";
+const ADDR = "0xd7Fd31C47c5A70AF9227ee7A2D501ac3e897A912";
 const rc = contract(ADDR);
 const B = BigInt, PER = 20;
-let me = null, items = [], view = { id: null, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0 };
+let me = null, items = [], view = { id: null, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0, stakes: [] };
 const when = (ts) => ts ? new Date(ts * 1000).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }) + " UTC" : "–";
 const addr = (a) => `<a class="mono" href="${EXPLORER}/address/${esc(a)}">${esc(short(a))}</a>${me && a.toLowerCase() === me.toLowerCase() ? " (you)" : ""}`;
-const cls = { ON: "", CLOSED: "ok", RECALLED: "bad", HELD: "", CLAIMED: "ok" };
+const cls = { ON: "", CLOSED: "ok", HELD: "", CLAIMED: "ok" };
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-const collateral = (p) => B(p.payout) * B(p.capacity - (p.status === "RECALLED" ? p.claimed : 0));
+// Still in escrow: all unclaimed collateral until every share is released, then only what recalled-model holders can claim.
+const collateral = (p) => B(p.payout) * B(p.released === p.backers ? p.models.reduce((t, m) => t + (m.recalled ? m.sold - m.claimed : 0), 0) : p.capacity - p.claimed);
+// One backer's share once the pool is CLOSED: pro rata to units, the last one takes the remainder.
+const share = (p, s) => p.released + 1 === p.backers ? B(p.free) - B(p.paid) : B(p.free) * B(s.units) / B(p.capacity);
 
 async function load(openId) {
   try {
@@ -138,11 +141,11 @@ async function load(openId) {
     for (let s = 0; s !== null; ) { const r = await rc.read("get_pools", [s, 50]); all.push(...r.items); s = r.next; }
     items = all.reverse();
     const n = (st) => items.filter((p) => p.status === st).length;
-    const held = items.reduce((t, p) => t + (p.released ? (p.status === "RECALLED" ? B(p.payout) * B(p.sold - p.claimed) : 0n) : collateral(p)), 0n);
-    $("#stats").innerHTML = [[items.length, "Pools"], [n("ON"), "Covering"], [n("RECALLED"), "Recalled"], [gen(held), "Collateral (GEN)"]]
+    const held = items.reduce((t, p) => t + collateral(p), 0n);
+    $("#stats").innerHTML = [[items.length, "Pools"], [n("ON"), "Covering"], [items.reduce((t, p) => t + p.recalled, 0), "Models recalled"], [gen(held), "Collateral (GEN)"]]
       .map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
     $("#pools").innerHTML = items.length ? items.map((p) => `<a class="item" href="#pool-${p.id}" data-id="${p.id}">
-      <div><b>${esc(p.product)}</b><small>#${p.id} · ${p.status.toLowerCase()} · until ${when(p.ends_at)} · ${p.sold}/${p.capacity} sold</small></div></a>`).join("")
+      <div><b>${esc(p.product)}</b><small>#${p.id} · ${p.status.toLowerCase()} · ${p.models.map((m) => esc(m.name) + (m.recalled ? " recalled" : "")).join(", ")} · until ${when(p.ends_at)} · ${p.sold}/${p.capacity} sold</small></div></a>`).join("")
       : `<p class="empty">No pools yet.</p>`;
     const h = location.hash.match(/^#pool-(\d+)$/), id = openId ?? (h ? Number(h[1]) : null);
     if (items.length) await open(Number.isInteger(id) && items.some((p) => p.id === id) ? id : items[0].id);
@@ -152,24 +155,28 @@ async function load(openId) {
 }
 async function morePolicies() { const r = await rc.read("get_policies", [view.id, "", view.next, PER]); view.policies.push(...r.items); view.next = r.next; }
 async function moreReads() { const r = await rc.read("get_readings", [view.id, view.rnext, PER]); view.reads.push(...r.items); view.rnext = r.next; }
+async function moreStakes() { view.stakes = []; for (let s = 0; s !== null; ) { const r = await rc.read("get_stakes", [view.id, s, 50]); view.stakes.push(...r.items); s = r.next; } }
 async function morePayouts() { const r = await rc.read("get_payouts", [view.pnext, 20, true]); view.payouts.push(...r.items); view.pnext = r.next; }
 async function open(id) {
-  view = { id, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0 };
-  await Promise.all([morePolicies(), moreReads(), morePayouts()]);
+  view = { id, policies: [], next: 0, reads: [], rnext: 0, payouts: [], pnext: 0, stakes: [] };
+  await Promise.all([morePolicies(), moreReads(), morePayouts(), moreStakes()]);
   await show();
 }
 
-function actions(p, policies, recov, now) {
-  if (!me) return `<p class="connect-hint">Connect a wallet to buy cover, check the page, claim or release.</p>`;
+function actions(p, policies, stakes, recov, now) {
+  if (!me) return `<p class="connect-hint">Connect a wallet to buy cover, back a pool, check the page, claim or release.</p>`;
   const out = [], mine = (x) => !!x && x.toLowerCase() === me.toLowerCase(), row = (hint, btn) => `<p class="hint">${hint}</p><div>${btn}</div>`;
-  const left = p.capacity - p.sold;
-  if (p.status === "ON" && now < p.ends_at && !mine(p.underwriter) && left > 0)
-    out.push(`<form data-form="buy" class="row" style="align-items:end"><label>Policies (${left} left, ${gen(p.premium)} GEN each, pays ${gen(p.payout)} GEN)<input name="count" type="number" min="1" max="${Math.min(10, left)}" value="1" required></label><div><button>Buy cover</button></div></form>`);
-  if (p.status === "ON" && now < p.ends_at) out.push(`<form data-form="check" class="row" style="align-items:end">${row("Ask validators to read the regulator's page now. If it lists a recall of this product, every policy can be paid.", `<button class="ghost">Read the page</button>`)}</form>`);
-  if (!p.released && (p.status !== "ON" || now >= p.ends_at))
-    out.push(`<form data-form="release" class="row" style="align-items:end">${row(p.status === "ON" ? "The cover has ended. Validators read the page one last time; if it lists no recall, the underwriter gets the collateral and premiums back." : `The underwriter gets ${gen(p.free)} GEN: premiums and the collateral no policy can claim.`, `<button>Release to the underwriter</button>`)}</form>`);
-  if (p.status === "RECALLED") for (const t of policies.filter((t) => t.status === "HELD"))
-    out.push(`<form data-form="claim" data-policy="${t.id}" class="row" style="align-items:end">${row(`Policy #${t.id}: ${plural(t.count, "policy")} held by ${addr(t.holder)}.`, `<button>Pay ${gen(B(p.payout) * B(t.count))} GEN</button>`)}</form>`);
+  const left = p.capacity - p.sold, covering = p.status === "ON" && now < p.ends_at, open = p.models.map((m, i) => ({ ...m, i })).filter((m) => !m.recalled);
+  if (covering && !stakes.some((s) => mine(s.backer)) && left > 0 && open.length)
+    out.push(`<form data-form="buy" class="row" style="align-items:end"><label>Model<select name="model">${open.map((m) => `<option value="${m.i}">${esc(m.name)}</option>`).join("")}</select></label><label>Policies (${left} left, ${gen(p.premium)} GEN each, pays ${gen(p.payout)} GEN)<input name="count" type="number" min="1" max="${Math.min(10, left)}" value="1" required></label><div><button>Buy cover</button></div></form>`);
+  if (covering && p.sold === 0 && p.recalled === 0 && p.capacity < 1000)
+    out.push(`<form data-form="back" class="row" style="align-items:end"><label>Back this pool too: units (${gen(p.payout)} GEN each)<input name="units" type="number" min="1" max="${1000 - p.capacity}" value="1" required></label><div><button class="ghost">Back the pool</button></div></form>`);
+  if (covering && open.length) out.push(`<form data-form="check" class="row" style="align-items:end">${row("Ask validators to read the regulator's page now. A recall of a model makes every policy on it payable; the others stay covered.", `<button class="ghost">Read the page</button>`)}</form>`);
+  const ended = p.status !== "ON" || now >= p.ends_at || !open.length;
+  if (ended) for (const s of stakes.filter((s) => !s.released))
+    out.push(`<form data-form="release" data-stake="${s.id}" class="row" style="align-items:end">${row(p.status === "ON" ? `${open.length ? "The cover has ended. Validators read the page one last time, then " : ""}${addr(s.backer)} gets its share for ${plural(s.units, "unit")} of ${p.capacity}.` : `${addr(s.backer)} gets ${gen(share(p, s))} GEN for ${plural(s.units, "unit")} of ${p.capacity}.`, `<button>Release the share</button>`)}</form>`);
+  for (const t of policies.filter((t) => t.status === "HELD" && p.models[t.model]?.recalled))
+    out.push(`<form data-form="claim" data-policy="${t.id}" class="row" style="align-items:end">${row(`Policy #${t.id}: ${plural(t.count, "policy")} on ${esc(p.models[t.model].name)} held by ${addr(t.holder)}.`, `<button>Pay ${gen(B(p.payout) * B(t.count))} GEN</button>`)}</form>`);
   if (B(recov) > 0n) out.push(`<form data-form="recover" class="row" style="align-items:end"><label>Recover ${gen(recov)} GEN from a failed transfer, to<input name="to" pattern="0x[0-9a-fA-F]{40}" value="${esc(me)}" required></label><div><button>Recover</button></div></form>`);
   return out.length ? `<div style="display:grid;gap:16px;margin-top:20px">${out.join("")}</div>` : "";
 }
@@ -177,7 +184,7 @@ function actions(p, policies, recov, now) {
 function reading(r) {
   const bad = r.answer !== "none";
   return `<div class="case"><div class="case-top"><span class="id">${esc(r.answer)}</span><span class="by">${when(r.at)} · asked by ${addr(r.by)}</span></div>
-    <div class="ruling ${bad ? "bad" : "ok"}"><b>${bad ? "Consensus: the page lists a recall of this product." : "Consensus: no recall of this product."}</b>${bad ? `<i>“${esc(r.quote)}”</i>` : ""}</div></div>`;
+    <div class="ruling ${bad ? "bad" : "ok"}"><b>${bad ? `Consensus: the page lists a recall of model ${esc(r.model)}.` : "Consensus: no new recall of these models."}</b>${bad ? `<i>“${esc(r.quote)}”</i>` : ""}</div></div>`;
 }
 
 async function show() {
@@ -186,26 +193,30 @@ async function show() {
   const el = $("#detail"), now = Math.floor(Date.now() / 1000);
   el.hidden = false;
   el.innerHTML = `<div class="dhead"><div><small>Pool #${p.id} · opened ${when(p.at)} · covers until ${when(p.ends_at)}</small><h2>${esc(p.product)} <span class="tag ${cls[p.status]}">${p.status.toLowerCase()}</span></h2>
-    <p>underwriter ${addr(p.underwriter)} · model ${esc(p.model)} · ${esc(p.source_name || p.source)} recall page <a href="${esc(p.url)}" rel="noopener nofollow">${esc(p.url)} ↗</a></p></div></div>
-    ${p.quote ? `<p class="quoted"><small>The regulator's page</small>${esc(p.quote)}</p>` : ""}
+    <p>opened by ${addr(p.underwriter)} · ${plural(p.backers, "backer")} · ${esc(p.source_name || p.source)} recall page <a href="${esc(p.url)}" rel="noopener nofollow">${esc(p.url)} ↗</a></p></div></div>
+    ${p.models.filter((m) => m.recalled).map((m) => `<p class="quoted"><small>The regulator's page on ${esc(m.name)}</small>${esc(m.quote)}</p>`).join("")}
     <div class="mini">
       <div><span>Premium → payout</span><b>${gen(p.premium)} → ${gen(p.payout)} GEN</b></div>
       <div><span>Sold / claimed</span><b>${p.sold} / ${p.claimed} of ${p.capacity}</b></div>
       <div><span>Collateral</span><b>${gen(B(p.payout) * B(p.capacity))} GEN</b></div>
-      <div><span>Released</span><b>${p.released ? "yes" : "no"}</b></div>
+      <div><span>Shares released</span><b>${p.released} of ${p.backers}</b></div>
     </div>
+    <h3>Models</h3>
+    <div class="tbl"><table><tbody>${p.models.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td>${m.sold} sold · ${m.claimed} claimed</td><td class="r"><span class="tag ${m.recalled ? "bad" : ""}">${m.recalled ? "recalled" : "covered"}</span></td></tr>`).join("")}</tbody></table></div>
+    <h3>Backers</h3>
+    <div class="tbl"><table><tbody>${view.stakes.map((s) => `<tr><td class="num mut">#${s.id}</td><td>${addr(s.backer)} · ${plural(s.units, "unit")}</td><td class="r">${s.released ? `<span class="tag ok">paid ${gen(s.amount)} GEN</span>` : ""}</td></tr>`).join("")}</tbody></table></div>
     <h3>Readings of the page (${view.reads.length}${view.rnext !== null ? "+" : ""})</h3>
     ${view.reads.map(reading).join("")}
     ${view.rnext !== null ? `<button class="ghost more" data-act="more-reads">More readings</button>` : ""}
     <h3>Policies</h3>
-    ${view.policies.length ? `<div class="tbl"><table><tbody>${view.policies.map((t) => `<tr><td class="num mut">#${t.id}</td><td>${addr(t.holder)} · ${plural(t.count, "policy")} · ${when(t.at)}</td><td class="r"><span class="tag ${cls[t.status]}">${t.status.toLowerCase()}</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="hint">No policies yet.</p>`}
+    ${view.policies.length ? `<div class="tbl"><table><tbody>${view.policies.map((t) => `<tr><td class="num mut">#${t.id}</td><td>${addr(t.holder)} · ${plural(t.count, "policy")} on ${esc(p.models[t.model]?.name)} · ${when(t.at)}</td><td class="r"><span class="tag ${cls[t.status]}">${t.status.toLowerCase()}</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="hint">No policies yet.</p>`}
     ${view.next !== null ? `<button class="ghost more" data-act="more-policies">More policies</button>` : ""}
     <h3>Unsettled transfers</h3>
     <p class="hint">A payment is marked delivered or failed from its own transfer result, once the paying transaction is finalized. Anyone can settle.</p>
     ${view.payouts.length ? `<div class="tbl"><table><tbody>${view.payouts.map((x) => `<tr><td class="num mut">#${x.id}</td><td>${esc(x.kind)}, ${gen(x.amount)} GEN to ${addr(x.to)}</td><td class="r">${me ? `<button class="ghost" data-act="settle_payout" data-arg="${x.id}">Settle</button>` : ""}</td></tr>`).join("")}</tbody></table></div>`
       : `<p class="hint">None${view.pnext !== null ? " in the range read so far" : ""}.</p>`}
     ${view.pnext !== null ? `<button class="ghost more" data-act="more-payouts">More transfers</button>` : ""}
-    ${actions(p, view.policies, recov, now)}`;
+    ${actions(p, view.policies, view.stakes, recov, now)}`;
   document.querySelectorAll("#pools .item").forEach((x) => x.toggleAttribute("aria-current", Number(x.dataset.id) === p.id));
 }
 
@@ -237,22 +248,23 @@ $("#detail").addEventListener("submit", async (ev) => {
   const after = (ok) => async () => ok(await rc.read("get_pool", [id]));
   const reads = async () => (await rc.read("get_readings", [id, 0, 1])).total;
   // A buy that finds a recall sends the premium back to the buyer.
-  if (fn === "buy") { const n = Number(f.count.value); args = [id, n]; value = B(p.premium) * B(n); payee = me; check = after((x) => x.sold === p.sold + n || x.status !== "ON"); }
+  if (fn === "buy") { const n = Number(f.count.value), k = Number(f.model.value); args = [id, k, n]; value = B(p.premium) * B(n); payee = me; check = after((x) => x.sold === p.sold + n || x.models[k].recalled); }
+  else if (fn === "back") { const n = Number(f.units.value); args = [id, n]; value = B(p.payout) * B(n); check = after((x) => x.capacity === p.capacity + n); }
   else if (fn === "check") { const n = await reads(); check = async () => (await reads()) > n; }
-  else if (fn === "release") { payee = p.underwriter; check = after((x) => x.released || x.status !== p.status); }
+  else if (fn === "release") { const s = view.stakes.find((x) => x.id === Number(f.dataset.stake)); args = [s.id]; payee = s.backer; check = async () => (await rc.read("get_stake", [s.id])).released; }
   else if (fn === "claim") { const t = view.policies.find((x) => x.id === Number(f.dataset.policy)); args = [t.id]; payee = t.holder; check = async () => (await rc.read("get_policy", [t.id])).status === "CLAIMED"; }
   else { args = [f.to.value]; payee = f.to.value; check = async () => B(await rc.read("get_recoverable", [me])) === 0n; }
   if (await send(rc, fn, fn, args, value, check, payee)) load(id);
 });
 const f0 = $("#create");
 const total = () => { try { return toWei(f0.payout.value) * B(f0.capacity.value || 0); } catch { return null; } };
-const showCollateral = () => { const t = total(); $("#collateral").textContent = t === null ? "" : `You escrow ${gen(t)} GEN (payout × policies). It comes back with the premiums if no recall is listed by the end.`; };
+const showCollateral = () => { const t = total(); $("#collateral").textContent = t === null ? "" : `You escrow ${gen(t)} GEN (payout × units). Your share of the premiums and of what no recalled-model policy claims comes back after the end.`; };
 f0.addEventListener("input", showCollateral); showCollateral();
 f0.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   try {
     const n = items.length;
-    const args = [f0.product.value.trim(), f0.model.value.trim(), f0.url.value.trim(), toWei(f0.premium.value), toWei(f0.payout.value), Number(f0.capacity.value), Number(f0.hours.value)];
+    const args = [f0.product.value.trim(), f0.models.value.split(",").map((m) => m.trim()).filter(Boolean), f0.url.value.trim(), toWei(f0.premium.value), toWei(f0.payout.value), Number(f0.capacity.value), Number(f0.hours.value)];
     if (await send(rc, "Open pool", "open_pool", args, total(), async () => (await rc.read("get_pools", [0, 1])).total === n + 1)) { f0.reset(); showCollateral(); load(n); }
   } catch (err) { status(err.message, true); }
 });
@@ -262,6 +274,6 @@ load();
 </script>
 <footer><div class="w">
   <a class="brand" href="#top"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="logo.svg#m"/></svg><span>Recall<em>Cover</em></span></a>
-  <nav><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a><a href="https://github.com/cris-the-dev/genlayer-recallcover">GitHub</a><a href="https://explorer-bradbury.genlayer.com/address/0x1c1d82D6541B2c8Edc8f1C8e98E252b7C2a0D882">Contract</a><a href="https://genlayer.com">Built on GenLayer</a></nav>
+  <nav><a href="https://github.com/cris-the-dev/genlayer-recallcover#readme">Docs</a><a href="https://github.com/cris-the-dev/genlayer-recallcover">GitHub</a><a href="https://explorer-bradbury.genlayer.com/address/0xd7Fd31C47c5A70AF9227ee7A2D501ac3e897A912">Contract</a><a href="https://genlayer.com">Built on GenLayer</a></nav>
 </div></footer>
 </body></html>
